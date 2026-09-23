@@ -521,6 +521,14 @@ gateway:
   # SSE max line size in bytes (default: 40MB)
   # SSE 单行最大字节数（默认 40MB）
   max_line_size: 41943040
+  # Streaming Chat Completions first-frame fastpath (default: off)
+  # Before forwarding upstream, immediately emit an empty assistant chunk and commit
+  # 200 + SSE headers so the client gets its first token right away. The upstream's
+  # own opening frame is de-duplicated, so model output is unchanged.
+  # 流式 Chat Completions 首帧快返（默认：关闭）
+  # 转发上游前立即下发一个内容为空的 assistant 开场帧并提交 200 + SSE 响应头，
+  # 让下游立刻拿到首字；上游真实开场帧会被去重，模型输出内容不变。
+  chat_first_frame_enabled: false
   # Log upstream error response body summary (safe/truncated; does not log request content)
   # 记录上游错误响应体摘要（安全/截断；不记录请求内容）
   log_upstream_error_body: true

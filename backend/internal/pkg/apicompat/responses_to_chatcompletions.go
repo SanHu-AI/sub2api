@@ -229,6 +229,9 @@ func resToChatHandleCreated(evt *ResponsesStreamEvent, state *ResponsesEventToCh
 			state.ServiceTier = evt.Response.ServiceTier
 		}
 	}
+	// 元信息必须先于 SentRole 短路落库：首帧快返会预置 SentRole=true（角色帧已
+	// 提前下发），此时仍要用上游的 ID / Model / ServiceTier 刷新 state，否则后续
+	// chunk 会一直停在快返首帧的占位值上。不要把这个更新挪到 SentRole 判断之后。
 	// Emit the role chunk.
 	if state.SentRole {
 		return nil

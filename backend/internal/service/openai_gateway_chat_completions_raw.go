@@ -305,6 +305,10 @@ func (s *OpenAIGatewayService) streamRawChatCompletions(
 	pendingLines := make([]string, 0, 8)
 	refusalDetector := newOpenAIChatSilentRefusalDetector(requestBodyLen)
 	var terminal openAIRawStreamTerminalState
+	// 首帧快返已提前下发 assistant 角色帧：剔除上游开场 chunk 的 delta.role，
+	// 让客户端只看到一次 role。只处理第一个带 role 的 chunk。
+	roleStripped := false
+	firstFrameInjected := OpenAIChatFirstFrameInjected(c)
 
 	writeLine := func(line string) {
 		if clientDisconnected {
@@ -360,6 +364,9 @@ func (s *OpenAIGatewayService) streamRawChatCompletions(
 		line = stripEmptyChatToolCallIdentityFromSSELine(line)
 
 		line = s.replaceModelInSSELine(line, upstreamModel, originalModel)
+		if firstFrameInjected {
+			line = stripInjectedChatRoleFromSSELine(line, &roleStripped)
+		}
 		writeLine(line)
 		if line == "" {
 			if !clientDisconnected && clientOutputStarted {

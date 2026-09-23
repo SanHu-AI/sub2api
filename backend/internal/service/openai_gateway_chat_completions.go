@@ -708,6 +708,14 @@ func (s *OpenAIGatewayService) handleChatStreamingResponse(
 
 	state := apicompat.NewResponsesEventToChatState()
 	state.Model = originalModel
+	// 首帧快返已提前下发过 assistant 角色帧：复用它的 ID 并抑制重复 role，
+	// response.created 到达时仍会刷新 ID/Model/ServiceTier（见 resToChatHandleCreated）。
+	if OpenAIChatFirstFrameInjected(c) {
+		state.SentRole = true
+		if id := OpenAIChatFirstFrameID(c); id != "" {
+			state.ID = id
+		}
+	}
 	// 网关作为计费链路的一环，不能把下游 usage 输出绑定到客户端是否显式请求。
 	// raw Chat Completions 直转路径已经强制透出 usage，这里保持同样行为，避免级联代理计费为 0。
 	state.IncludeUsage = true

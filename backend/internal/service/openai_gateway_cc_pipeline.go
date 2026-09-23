@@ -52,6 +52,11 @@ func (s *OpenAIGatewayService) newStreamHeaderWriter(c *gin.Context, upstream ht
 			return
 		}
 		headersWritten = true
+		// 首帧快返可能已经提交过 200 + SSE 头：此时再 WriteHeader 会触发 gin 的
+		// "headers were already written" 警告，且上游头已无法追加，直接跳过。
+		if c != nil && c.Writer != nil && c.Writer.Written() {
+			return
+		}
 		if s.responseHeaderFilter != nil {
 			responseheaders.WriteFilteredHeaders(c.Writer.Header(), upstream, s.responseHeaderFilter)
 		}

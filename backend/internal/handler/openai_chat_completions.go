@@ -240,7 +240,18 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 		if channelMapping.Mapped {
 			forwardBody = h.gatewayService.ReplaceModelInBody(body, channelMapping.MappedModel)
 		}
-		writerSizeBeforeForward := c.Writer.Size()
+		// 首帧快返（gateway.chat_first_frame_enabled，默认关闭）：流式请求在转发
+		// 上游之前先下发一个内容为空的 assistant 开场帧并提交 200 + SSE 响应头，
+		// 让下游立刻拿到首字。此后响应头已提交，错误一律走流内错误帧，因此同步
+		// 置位 streamStarted。
+		if reqStream && h.openAIChatFirstFrameEnabled() {
+			if service.WriteOpenAIChatFirstFrame(c, reqModel) {
+				streamStarted = true
+			}
+		}
+		// 与快照同口径：排除心跳/首帧字节，避免"仅首帧快返写出"被误判为已向
+		// 客户端写出语义响应而放弃 failover 换号。
+		writerSizeBeforeForward := service.OpenAICompactKeepaliveAdjustedWrittenSize(c)
 		result, err := func() (*service.OpenAIForwardResult, error) {
 			defer func() {
 				if accountReleaseFunc != nil {
@@ -325,7 +336,7 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 						)
 						return
 					}
-					if c.Writer.Size() != writerSizeBeforeForward {
+					if service.OpenAICompactKeepaliveAdjustedWrittenSize(c) != writerSizeBeforeForward {
 						h.gatewayService.ObserveOpenAIAccountHealthFailure(c.Request.Context(), account, err)
 						h.handleFailoverExhausted(c, failoverErr, true)
 						return
@@ -410,6 +421,13 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 		)
 		return
 	}
+}
+
+// openAIChatFirstFrameEnabled 报告是否开启流式 Chat Completions 首帧快返。
+// 默认关闭：它会把响应头提前固化为 200 + SSE，错误改走流内错误帧，属于需要
+// 部署方明确接受的行为变化。
+func (h *OpenAIGatewayHandler) openAIChatFirstFrameEnabled() bool {
+	return h.cfg != nil && h.cfg.Gateway.ChatFirstFrameEnabled
 }
 
 // resolveOpenAIUpstreamEndpoint returns the actual upstream endpoint for an
