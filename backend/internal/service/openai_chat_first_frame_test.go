@@ -1,10 +1,12 @@
 package service
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
@@ -64,6 +66,27 @@ func TestOpenAIAdjustedWrittenSizeExcludesFirstFrame(t *testing.T) {
 	_, err := c.Writer.Write([]byte("data: real\n\n"))
 	require.NoError(t, err)
 	require.Equal(t, len("data: real\n\n"), OpenAICompactKeepaliveAdjustedWrittenSize(c))
+}
+
+// 首帧快返由运行时设置控制：key 缺失或显式关闭时必须保持关闭；settingService
+// 未注入（单测/降级路径）也必须保持关闭。
+func TestOpenAIChatFirstFrameEnabled_RuntimeSetting(t *testing.T) {
+	ctx := context.Background()
+	repo := &gatewayTTLSettingRepo{data: map[string]string{}}
+	gatewayForwardingCache.Store(&cachedGatewayForwardingSettings{})
+	svc := &OpenAIGatewayService{settingService: NewSettingService(repo, &config.Config{})}
+
+	require.False(t, svc.ChatFirstFrameEnabled(ctx), "key 缺失时必须默认关闭")
+
+	repo.data[SettingKeyOpenAIChatFirstFrameEnabled] = "false"
+	gatewayForwardingCache.Store(&cachedGatewayForwardingSettings{})
+	require.False(t, svc.ChatFirstFrameEnabled(ctx))
+
+	repo.data[SettingKeyOpenAIChatFirstFrameEnabled] = "true"
+	gatewayForwardingCache.Store(&cachedGatewayForwardingSettings{})
+	require.True(t, svc.ChatFirstFrameEnabled(ctx))
+
+	require.False(t, (&OpenAIGatewayService{}).ChatFirstFrameEnabled(ctx))
 }
 
 func TestStripInjectedChatRoleFromSSELine(t *testing.T) {

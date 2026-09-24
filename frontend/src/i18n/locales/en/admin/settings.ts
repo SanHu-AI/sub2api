@@ -544,6 +544,9 @@ export default {
         rewriteMessageCacheControlHint: 'Default off: preserve client cache_control on message content blocks. When enabled, client breakpoints are stripped and proxy breakpoints are injected for clients that do not manage caching themselves.',
         clientDatelineNormalization: 'Client Dateline Normalization',
         clientDatelineNormalizationHint: 'Default on. Rewrites the "Today\'s date is …" sentence in Anthropic OAuth/Setup Token requests back to a canonical ASCII apostrophe and hyphen date format, erasing steganographic fingerprint bits some clients inject when they detect a non-official base URL. Applies to system prompts and <system-reminder> blocks only; API-Key accounts are unaffected.',
+        openAIChatFirstFrameEnabled: 'Chat Completions First-Frame Fastpath',
+        openAIChatFirstFrameEnabledHint:
+          'Default off. When enabled, streaming /v1/chat/completions emits an empty assistant chunk before forwarding upstream, so clients get their first token without waiting for upstream queueing or model thinking time. Note: the response status is pinned to 200 up front and upstream errors become in-stream error frames, which changes behaviour for clients that retry on HTTP status codes.',
         antigravityUserAgentVersion: 'Antigravity UA Version',
         antigravityUserAgentVersionPlaceholder: '1.23.2',
         antigravityUserAgentVersionHint: 'Leave empty to use ANTIGRAVITY_USER_AGENT_VERSION or the built-in default 1.23.2; when set, the admin setting takes precedence.',

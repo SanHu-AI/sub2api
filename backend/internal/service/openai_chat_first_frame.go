@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"net/http"
@@ -32,6 +33,18 @@ const (
 	openAIChatFirstFrameIDKey    = "openai_chat_first_frame_id"
 	openAIChatFirstFrameBytesKey = "openai_chat_first_frame_bytes"
 )
+
+// ChatFirstFrameEnabled 报告是否开启流式 Chat Completions 首帧快返。
+//
+// 这是运行时设置（setting key openai_chat_first_frame_enabled，管理员在设置页
+// 控制），读取走 SettingService 的进程内缓存（60s TTL），热路径无 DB 查询。
+// settingService 未注入时一律返回 false，即保持关闭。
+func (s *OpenAIGatewayService) ChatFirstFrameEnabled(ctx context.Context) bool {
+	if s == nil || s.settingService == nil {
+		return false
+	}
+	return s.settingService.IsOpenAIChatFirstFrameEnabled(ctx)
+}
 
 // OpenAIChatFirstFrameInjected 报告本次请求是否已经下发过快返首帧。
 func OpenAIChatFirstFrameInjected(c *gin.Context) bool {

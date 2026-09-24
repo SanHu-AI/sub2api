@@ -1088,13 +1088,6 @@ type GatewayConfig struct {
 	ImageNonstreamKeepaliveInterval int `mapstructure:"image_nonstream_keepalive_interval"`
 	// MaxLineSize: 上游 SSE 单行最大字节数（0使用默认值）
 	MaxLineSize int `mapstructure:"max_line_size"`
-	// ChatFirstFrameEnabled: 流式 Chat Completions 首帧快返（默认关闭）
-	// 开启后在转发上游之前立即下发一个内容为空的 assistant 开场帧并提交 200 +
-	// SSE 响应头，让下游立刻拿到首字；上游真实开场帧随后会被去重，不会重复带
-	// role，也不改变模型输出内容。仅对 stream=true 且走 OpenAI Chat Completions
-	// 协议的请求生效，非流式请求无法提前返回。
-	ChatFirstFrameEnabled bool `mapstructure:"chat_first_frame_enabled"`
-
 	// 是否记录上游错误响应体摘要（避免输出请求内容）
 	LogUpstreamErrorBody bool `mapstructure:"log_upstream_error_body"`
 	// 上游错误响应体记录最大字节数（超过会截断）
@@ -2548,7 +2541,6 @@ func setDefaults() {
 	viper.SetDefault("gateway.image_stream_keepalive_interval", 10)
 	viper.SetDefault("gateway.image_nonstream_keepalive_interval", 0)
 	viper.SetDefault("gateway.max_line_size", 500*1024*1024)
-	viper.SetDefault("gateway.chat_first_frame_enabled", false)
 	viper.SetDefault("gateway.scheduling.sticky_session_max_waiting", 3)
 	viper.SetDefault("gateway.scheduling.sticky_session_wait_timeout", 120*time.Second)
 	viper.SetDefault("gateway.scheduling.fallback_wait_timeout", 30*time.Second)

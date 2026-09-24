@@ -257,7 +257,7 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 		// 上游之前先下发一个内容为空的 assistant 开场帧并提交 200 + SSE 响应头，
 		// 让下游立刻拿到首字。此后响应头已提交，错误一律走流内错误帧，因此同步
 		// 置位 streamStarted。
-		if reqStream && h.openAIChatFirstFrameEnabled() {
+		if reqStream && h.gatewayService.ChatFirstFrameEnabled(c.Request.Context()) {
 			if service.WriteOpenAIChatFirstFrame(c, reqModel) {
 				streamStarted = true
 			}
@@ -434,13 +434,6 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 		)
 		return
 	}
-}
-
-// openAIChatFirstFrameEnabled 报告是否开启流式 Chat Completions 首帧快返。
-// 默认关闭：它会把响应头提前固化为 200 + SSE，错误改走流内错误帧，属于需要
-// 部署方明确接受的行为变化。
-func (h *OpenAIGatewayHandler) openAIChatFirstFrameEnabled() bool {
-	return h.cfg != nil && h.cfg.Gateway.ChatFirstFrameEnabled
 }
 
 // resolveOpenAIUpstreamEndpoint returns the actual upstream endpoint for an

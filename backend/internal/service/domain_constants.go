@@ -686,6 +686,10 @@ const (
 	SettingKeyClaudeOAuthSystemPrompt = "claude_oauth_system_prompt"
 	// SettingKeyClaudeOAuthSystemPromptBlocks Claude OAuth mimic 路径注入的 system blocks JSON 配置（空值使用内置默认）
 	SettingKeyClaudeOAuthSystemPromptBlocks = "claude_oauth_system_prompt_blocks"
+	// SettingKeyOpenAIChatFirstFrameEnabled 流式 Chat Completions 首帧快返（默认 false）：
+	// 转发上游之前先下发一个内容为空的 assistant 开场帧并提交 200 + SSE 响应头，让下游
+	// 立刻拿到首字。开启后响应状态码会提前固化为 200，上游错误改走流内错误帧。
+	SettingKeyOpenAIChatFirstFrameEnabled = "openai_chat_first_frame_enabled"
 	// SettingKeyEnableAnthropicCacheTTL1hInjection 是否对 Anthropic OAuth/SetupToken 请求体注入 1h cache_control ttl（默认 false）
 	SettingKeyEnableAnthropicCacheTTL1hInjection = "enable_anthropic_cache_ttl_1h_injection"
 	// SettingKeyEnableClientDatelineNormalization 是否对 Anthropic OAuth/SetupToken 账号
