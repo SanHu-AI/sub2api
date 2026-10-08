@@ -166,7 +166,9 @@ func stripInjectedChatRoleFromSSELine(line string, roleStripped *bool) string {
 		return line
 	}
 	*roleStripped = true
-	return "data: " + string(updated) + "\n\n"
+	// 与 replaceModelInSSELine 同一约定：只返回 "data: " 前缀的单行，行尾换行由
+	// 写出侧统一补，避免多出的空行触发额外的 SSE 事件分派。
+	return "data: " + string(updated)
 }
 
 // generateOpenAIChatFirstFrameID 生成与上游同形的 chatcmpl ID。

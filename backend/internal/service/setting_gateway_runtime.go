@@ -65,6 +65,7 @@ type cachedGatewayForwardingSettings struct {
 	rewriteMessageCacheControl       bool
 	clientDatelineNormalization      bool
 	chatFirstFrameEnabled            bool
+	responsesFirstFrameEnabled       bool
 	expiresAt                        int64 // unix nano
 }
 
@@ -863,6 +864,7 @@ type gatewayForwardingSettingsResult struct {
 	clientDatelineNormalization                                                           bool
 	// chatFirstFrameEnabled 默认 false：零值即安全默认，DB 读取失败分支无需额外设置。
 	chatFirstFrameEnabled                                  bool
+	responsesFirstFrameEnabled                             bool
 	claudeOAuthSystemPrompt, claudeOAuthSystemPromptBlocks string
 }
 
@@ -881,6 +883,7 @@ func (s *SettingService) getGatewayForwardingSettingsCached(ctx context.Context)
 				rewriteMessageCacheControl:       cached.rewriteMessageCacheControl,
 				clientDatelineNormalization:      cached.clientDatelineNormalization,
 				chatFirstFrameEnabled:            cached.chatFirstFrameEnabled,
+				responsesFirstFrameEnabled:       cached.responsesFirstFrameEnabled,
 			}
 		}
 	}
@@ -899,6 +902,7 @@ func (s *SettingService) getGatewayForwardingSettingsCached(ctx context.Context)
 					rewriteMessageCacheControl:       cached.rewriteMessageCacheControl,
 					clientDatelineNormalization:      cached.clientDatelineNormalization,
 					chatFirstFrameEnabled:            cached.chatFirstFrameEnabled,
+					responsesFirstFrameEnabled:       cached.responsesFirstFrameEnabled,
 				}, nil
 			}
 		}
@@ -914,9 +918,10 @@ func (s *SettingService) getGatewayForwardingSettingsCached(ctx context.Context)
 			SettingKeyClaudeOAuthSystemPromptBlocks,
 			SettingKeyEnableAnthropicCacheTTL1hInjection,
 			SettingKeyRewriteMessageCacheControl,
-			SettingKeyEnableClientDatelineNormalization,
-			SettingKeyOpenAIChatFirstFrameEnabled,
-		})
+		SettingKeyEnableClientDatelineNormalization,
+		SettingKeyOpenAIChatFirstFrameEnabled,
+		SettingKeyOpenAIResponsesFirstFrameEnabled,
+	})
 		if err != nil {
 			slog.Warn("failed to get gateway forwarding settings", "error", err)
 			gatewayForwardingCache.Store(&cachedGatewayForwardingSettings{
@@ -955,6 +960,7 @@ func (s *SettingService) getGatewayForwardingSettingsCached(ctx context.Context)
 			clientDatelineNormalization = v == "true"
 		}
 		chatFirstFrameEnabled := values[SettingKeyOpenAIChatFirstFrameEnabled] == "true"
+	responsesFirstFrameEnabled := values[SettingKeyOpenAIResponsesFirstFrameEnabled] == "true"
 		gatewayForwardingCache.Store(&cachedGatewayForwardingSettings{
 			openAITTFTMode:                   ttftMode,
 			fingerprintUnification:           fp,
@@ -965,10 +971,11 @@ func (s *SettingService) getGatewayForwardingSettingsCached(ctx context.Context)
 			claudeOAuthSystemPromptBlocks:    systemPromptBlocks,
 			anthropicCacheTTL1hInjection:     cacheTTL1h,
 			rewriteMessageCacheControl:       rewriteMessageCacheControl,
-			clientDatelineNormalization:      clientDatelineNormalization,
-			chatFirstFrameEnabled:            chatFirstFrameEnabled,
-			expiresAt:                        time.Now().Add(gatewayForwardingCacheTTL).UnixNano(),
-		})
+		clientDatelineNormalization:      clientDatelineNormalization,
+		chatFirstFrameEnabled:            chatFirstFrameEnabled,
+		responsesFirstFrameEnabled:       responsesFirstFrameEnabled,
+		expiresAt:                        time.Now().Add(gatewayForwardingCacheTTL).UnixNano(),
+	})
 		return gatewayForwardingSettingsResult{
 			openAITTFTMode:                   ttftMode,
 			fp:                               fp,
@@ -979,10 +986,11 @@ func (s *SettingService) getGatewayForwardingSettingsCached(ctx context.Context)
 			claudeOAuthSystemPromptBlocks:    systemPromptBlocks,
 			cacheTTL1h:                       cacheTTL1h,
 			rewriteMessageCacheControl:       rewriteMessageCacheControl,
-			clientDatelineNormalization:      clientDatelineNormalization,
-			chatFirstFrameEnabled:            chatFirstFrameEnabled,
-		}, nil
-	})
+		clientDatelineNormalization:      clientDatelineNormalization,
+		chatFirstFrameEnabled:            chatFirstFrameEnabled,
+		responsesFirstFrameEnabled:       responsesFirstFrameEnabled,
+	}, nil
+})
 	if r, ok := val.(gatewayForwardingSettingsResult); ok {
 		return r
 	}
@@ -1021,6 +1029,11 @@ func (s *SettingService) IsClientDatelineNormalizationEnabled(ctx context.Contex
 // IsOpenAIChatFirstFrameEnabled 检查是否开启流式 Chat Completions 首帧快返。默认关闭。
 func (s *SettingService) IsOpenAIChatFirstFrameEnabled(ctx context.Context) bool {
 	return s.getGatewayForwardingSettingsCached(ctx).chatFirstFrameEnabled
+}
+
+// IsOpenAIResponsesFirstFrameEnabled 检查是否开启流式 /v1/responses 首帧快返。默认关闭。
+func (s *SettingService) IsOpenAIResponsesFirstFrameEnabled(ctx context.Context) bool {
+	return s.getGatewayForwardingSettingsCached(ctx).responsesFirstFrameEnabled
 }
 
 // GetClaudeOAuthSystemPromptInjectionSettings returns the Claude OAuth mimic

@@ -326,6 +326,12 @@ func (c *reasoningRecordingCache) GetReasoningContent(_ context.Context, itemID 
 	}
 	return "", ErrReasoningContentNotFound
 }
+func (c *reasoningRecordingCache) SetResponseIDAlias(_ context.Context, _ string, _ string, _ time.Duration) error {
+	return nil
+}
+func (c *reasoningRecordingCache) GetResponseIDAlias(_ context.Context, _ string) (string, error) {
+	return "", ErrResponseIDAliasNotFound
+}
 
 func (c *reasoningRecordingCache) snapshotSets() map[string]string {
 	c.mu.Lock()

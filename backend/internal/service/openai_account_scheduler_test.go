@@ -206,6 +206,12 @@ func (c *schedulerTestGatewayCache) SetReasoningContent(_ context.Context, _ str
 func (c *schedulerTestGatewayCache) GetReasoningContent(_ context.Context, _ string) (string, error) {
 	return "", ErrReasoningContentNotFound
 }
+func (c *schedulerTestGatewayCache) SetResponseIDAlias(_ context.Context, _ string, _ string, _ time.Duration) error {
+	return nil
+}
+func (c *schedulerTestGatewayCache) GetResponseIDAlias(_ context.Context, _ string) (string, error) {
+	return "", ErrResponseIDAliasNotFound
+}
 
 func newSchedulerTestOpenAIWSV2Config() *config.Config {
 	cfg := &config.Config{}

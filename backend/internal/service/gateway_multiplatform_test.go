@@ -297,6 +297,12 @@ func (m *mockGatewayCacheForPlatform) SetReasoningContent(_ context.Context, _ s
 func (m *mockGatewayCacheForPlatform) GetReasoningContent(_ context.Context, _ string) (string, error) {
 	return "", ErrReasoningContentNotFound
 }
+func (m *mockGatewayCacheForPlatform) SetResponseIDAlias(_ context.Context, _ string, _ string, _ time.Duration) error {
+	return nil
+}
+func (m *mockGatewayCacheForPlatform) GetResponseIDAlias(_ context.Context, _ string) (string, error) {
+	return "", ErrResponseIDAliasNotFound
+}
 
 type mockGroupRepoForGateway struct {
 	groups           map[int64]*Group

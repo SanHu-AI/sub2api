@@ -458,6 +458,9 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.OpenAIChatFirstFrameEnabled != after.OpenAIChatFirstFrameEnabled {
 		changed = append(changed, "openai_chat_first_frame_enabled")
 	}
+	if before.OpenAIResponsesFirstFrameEnabled != after.OpenAIResponsesFirstFrameEnabled {
+		changed = append(changed, "openai_responses_first_frame_enabled")
+	}
 	if before.EnableMetadataPassthrough != after.EnableMetadataPassthrough {
 		changed = append(changed, "enable_metadata_passthrough")
 	}

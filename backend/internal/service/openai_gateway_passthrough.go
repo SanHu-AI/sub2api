@@ -134,7 +134,7 @@ func (s *OpenAIGatewayService) forwardOpenAIPassthrough(
 	reasoningEffort *string,
 	reqStream bool,
 	startTime time.Time,
-) (*OpenAIForwardResult, error) {
+	) (*OpenAIForwardResult, error) {
 	requestedModel := reqModel
 	upstreamPassthroughModel := ""
 	if isOpenAIResponsesCompactPath(c) {
@@ -1877,6 +1877,10 @@ func (s *OpenAIGatewayService) handleStreamingResponsePassthrough(
 
 	usage := &OpenAIUsage{}
 	imageCounter := newOpenAIImageOutputCounter()
+	// 首帧快返：本次请求若已下发过快返首帧，后续事件的 response id 必须统一改写为
+	// 编造 id —— pendingLines 暂存与直接写出都要用改写后的行，否则客户端会看到两个
+	// 不同的 response id。
+	firstFrameAliasID := OpenAIResponsesFirstFrameAliasID(c)
 	var firstTokenMs *int
 	responseID := ""
 	ttftMode := s.openAITTFTMode(ctx)
@@ -2188,6 +2192,15 @@ func (s *OpenAIGatewayService) handleStreamingResponsePassthrough(
 				responseFailedPending = false
 				continue
 			}
+		}
+
+		// 首帧快返：统一改写 response id，并在首次拿到上游真实 id 时落别名映射。
+		if firstFrameAliasID != "" {
+			rewrittenLine, realID := rewriteOpenAIResponsesFirstFrameIDLine(line, firstFrameAliasID)
+			if realID != "" {
+				s.openAIResponsesFirstFrameBindRealID(c, realID)
+			}
+			line = rewrittenLine
 		}
 
 		if !clientDisconnected && !failureDelivered && !suppressCurrentEvent {

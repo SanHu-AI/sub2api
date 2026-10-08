@@ -300,6 +300,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		RewriteMessageCacheControl:                             settings.RewriteMessageCacheControl,
 		EnableClientDatelineNormalization:                      settings.EnableClientDatelineNormalization,
 		OpenAIChatFirstFrameEnabled:                            settings.OpenAIChatFirstFrameEnabled,
+		OpenAIResponsesFirstFrameEnabled:                       settings.OpenAIResponsesFirstFrameEnabled,
 		AntigravityUserAgentVersion:                            settings.AntigravityUserAgentVersion,
 		OpenAICodexUserAgent:                                   settings.OpenAICodexUserAgent,
 		OpenAICodexClientVersion:                               settings.OpenAICodexClientVersion,

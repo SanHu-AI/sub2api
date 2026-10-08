@@ -325,6 +325,12 @@ func (m *mockGatewayCacheForGemini) SetReasoningContent(_ context.Context, _ str
 func (m *mockGatewayCacheForGemini) GetReasoningContent(_ context.Context, _ string) (string, error) {
 	return "", ErrReasoningContentNotFound
 }
+func (m *mockGatewayCacheForGemini) SetResponseIDAlias(_ context.Context, _ string, _ string, _ time.Duration) error {
+	return nil
+}
+func (m *mockGatewayCacheForGemini) GetResponseIDAlias(_ context.Context, _ string) (string, error) {
+	return "", ErrResponseIDAliasNotFound
+}
 
 // TestGeminiMessagesCompatService_SelectAccountForModelWithExclusions_GeminiPlatform 测试 Gemini 单平台选择
 func TestGeminiMessagesCompatService_SelectAccountForModelWithExclusions_GeminiPlatform(t *testing.T) {

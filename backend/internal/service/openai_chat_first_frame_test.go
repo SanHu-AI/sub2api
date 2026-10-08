@@ -98,7 +98,7 @@ func TestStripInjectedChatRoleFromSSELine(t *testing.T) {
 	require.True(t, stripped)
 	require.False(t, gjson.Get(out, "choices.0.delta.role").Exists())
 	require.Equal(t, "hi", gjson.Get(out, "choices.0.delta.content").String())
-	require.Contains(t, out, "\n\n")
+	require.NotContains(t, out, "\n", "改写结果必须是单行，行尾换行由写出侧统一补")
 
 	// 之后的 chunk 不再改动。
 	second := `data: {"choices":[{"index":0,"delta":{"content":"more"}}]}`

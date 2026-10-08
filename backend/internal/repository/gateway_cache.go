@@ -269,6 +269,49 @@ func (c *gatewayCache) GetReasoningContent(ctx context.Context, itemID string) (
 	return val, nil
 }
 
+const responseIDAliasPrefix = "response_id_alias:"
+
+// responseIDAliasDefaultTTL 是首帧快返 id 别名的默认有效期。Codex 会话可能跨
+// 多天恢复，与 reasoning 缓存一致取 7 天。
+const responseIDAliasDefaultTTL = 7 * 24 * time.Hour
+
+// SetResponseIDAlias 记录"首帧编造的 resp_ id → 上游真实 response id"。
+// 任一参数为空时直接返回 nil（没有可缓存的映射，属正常情况而非错误）。
+func (c *gatewayCache) SetResponseIDAlias(ctx context.Context, aliasID string, realID string, ttl time.Duration) error {
+	if c == nil || c.rdb == nil {
+		return errors.New("gateway cache unavailable")
+	}
+	aliasID = strings.TrimSpace(aliasID)
+	realID = strings.TrimSpace(realID)
+	if aliasID == "" || realID == "" {
+		return nil
+	}
+	if ttl <= 0 {
+		ttl = responseIDAliasDefaultTTL
+	}
+	return c.rdb.Set(ctx, responseIDAliasPrefix+aliasID, realID, ttl).Err()
+}
+
+// GetResponseIDAlias 返回编造 id 对应的上游真实 id；未命中返回
+// service.ErrResponseIDAliasNotFound。
+func (c *gatewayCache) GetResponseIDAlias(ctx context.Context, aliasID string) (string, error) {
+	if c == nil || c.rdb == nil {
+		return "", errors.New("gateway cache unavailable")
+	}
+	aliasID = strings.TrimSpace(aliasID)
+	if aliasID == "" {
+		return "", service.ErrResponseIDAliasNotFound
+	}
+	val, err := c.rdb.Get(ctx, responseIDAliasPrefix+aliasID).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return "", service.ErrResponseIDAliasNotFound
+		}
+		return "", err
+	}
+	return val, nil
+}
+
 const (
 	cyberSessionBlockPrefix         = "cyber_session_block:"
 	cyberSessionScopePrefix         = "cyber_session_scope:"

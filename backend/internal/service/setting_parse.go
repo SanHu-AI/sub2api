@@ -243,6 +243,7 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyRewriteMessageCacheControl:                         strconv.FormatBool(s.defaultRewriteMessageCacheControl()),
 		SettingKeyEnableClientDatelineNormalization:                  "true",
 		SettingKeyOpenAIChatFirstFrameEnabled:                        "false",
+		SettingKeyOpenAIResponsesFirstFrameEnabled:                   "false",
 		SettingKeyAntigravityUserAgentVersion:                        "",
 		SettingKeyOpenAICodexUserAgent:                               "",
 		SettingKeyOpenAICodexClientVersion:                           "",
@@ -889,6 +890,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	}
 	// 首帧快返默认关闭：它会改变错误语义（状态码提前固化为 200），必须由管理员显式开启。
 	result.OpenAIChatFirstFrameEnabled = settings[SettingKeyOpenAIChatFirstFrameEnabled] == "true"
+	result.OpenAIResponsesFirstFrameEnabled = settings[SettingKeyOpenAIResponsesFirstFrameEnabled] == "true"
 	result.AntigravityUserAgentVersion = antigravity.NormalizeUserAgentVersion(settings[SettingKeyAntigravityUserAgentVersion])
 	result.OpenAICodexUserAgent = strings.TrimSpace(settings[SettingKeyOpenAICodexUserAgent])
 	result.OpenAICodexClientVersion = NormalizeCodexClientVersion(settings[SettingKeyOpenAICodexClientVersion])

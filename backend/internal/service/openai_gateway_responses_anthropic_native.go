@@ -427,6 +427,7 @@ func (s *OpenAIGatewayService) handleResponsesStreamingFromNativeAnthropic(
 				continue
 			}
 			for _, restored := range payloads {
+				restored = s.rewriteResponsesFirstFrameIDBytes(c, restored)
 				eventType := gjson.GetBytes(restored, "type").String()
 				if _, err := fmt.Fprintf(c.Writer, "event: %s\ndata: %s\n\n", eventType, restored); err != nil {
 					clientDisconnected = true
@@ -489,6 +490,7 @@ func (s *OpenAIGatewayService) handleResponsesStreamingFromNativeAnthropic(
 				continue
 			}
 			for _, restored := range payloads {
+				restored = s.rewriteResponsesFirstFrameIDBytes(c, restored)
 				eventType := gjson.GetBytes(restored, "type").String()
 				if _, err := fmt.Fprintf(c.Writer, "event: %s\ndata: %s\n\n", eventType, restored); err != nil {
 					clientDisconnected = true

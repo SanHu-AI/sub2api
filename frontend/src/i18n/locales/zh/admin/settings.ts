@@ -540,6 +540,9 @@ export default {
         openAIChatFirstFrameEnabled: 'Chat Completions 首帧快返',
         openAIChatFirstFrameEnabledHint:
           '默认关闭。开启后，流式 /v1/chat/completions 会在转发上游之前立即下发一个内容为空的 assistant 帧，客户端无需等待上游排队与模型思考即可拿到首字。注意：响应状态码会因此提前固化为 200，上游错误改为流内错误帧，依赖 HTTP 状态码重试的客户端行为会变化。',
+        openAIResponsesFirstFrameEnabled: 'Responses 首帧快返',
+        openAIResponsesFirstFrameEnabledHint:
+          '默认关闭。开启后，流式 /v1/responses 会在转发上游之前立即下发一个 response.created 帧，客户端无需等待上游排队即可拿到首字。由于真实 response id 此时尚未产生，该帧携带的是网关编造的 resp_s2ff_ 前缀 id，网关会用 Redis 维护「编造 id → 真实 id」的别名映射（7 天），使 previous_response_id 续链仍可用；后续流内事件中的 id 会统一改写为同一个编造 id。注意：响应状态码会提前固化为 200，上游错误改为流内错误帧；若客户端在会话中只用内部流转而不回传 id，则无需依赖该映射。',
         antigravityUserAgentVersion: 'Antigravity UA 版本',
         antigravityUserAgentVersionPlaceholder: '1.23.2',
         antigravityUserAgentVersionHint: '留空时使用 ANTIGRAVITY_USER_AGENT_VERSION 或内置默认值 1.23.2；填写后后台设置优先。',

@@ -207,6 +207,14 @@ func (s *OpenAIGatewayService) streamChatCompletionsAsResponses(
 	state.ToolSearchDeclared = toolSearch
 	state.NamespaceTools = namespaceTools
 	clientDisconnected := false
+	// 首帧快返：response.created 已抢先下发，抑制桥接层再造一个；同时把 response id
+	// 固定为编造 id。该路径上游是 Chat Completions，没有真正的 response id 可映射，
+	// 因此只保证本条流内 id 一致，不写别名映射。
+	firstFrameAliasID := OpenAIResponsesFirstFrameAliasID(c)
+	if firstFrameAliasID != "" {
+		state.CreatedSent = true
+		state.ResponseID = firstFrameAliasID
+	}
 
 	writeEvents := func(events []apicompat.ResponsesStreamEvent) {
 		if clientDisconnected || len(events) == 0 {
@@ -214,6 +222,10 @@ func (s *OpenAIGatewayService) streamChatCompletionsAsResponses(
 		}
 		writeStreamHeaders()
 		for _, event := range events {
+			if firstFrameAliasID != "" && event.Response != nil && event.Response.ID != "" &&
+				event.Response.ID != firstFrameAliasID {
+				event.Response.ID = firstFrameAliasID
+			}
 			sse, err := apicompat.ResponsesEventToSSE(event)
 			if err != nil {
 				logger.L().Warn("openai responses chat fallback: failed to marshal stream event",

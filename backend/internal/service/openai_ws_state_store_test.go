@@ -234,6 +234,12 @@ func (c *openAIWSStateStoreTimeoutProbeCache) SetReasoningContent(_ context.Cont
 func (c *openAIWSStateStoreTimeoutProbeCache) GetReasoningContent(_ context.Context, _ string) (string, error) {
 	return "", ErrReasoningContentNotFound
 }
+func (c *openAIWSStateStoreTimeoutProbeCache) SetResponseIDAlias(_ context.Context, _ string, _ string, _ time.Duration) error {
+	return nil
+}
+func (c *openAIWSStateStoreTimeoutProbeCache) GetResponseIDAlias(_ context.Context, _ string) (string, error) {
+	return "", ErrResponseIDAliasNotFound
+}
 
 func TestOpenAIWSStateStore_RedisOpsUseShortTimeout(t *testing.T) {
 	probe := &openAIWSStateStoreTimeoutProbeCache{}

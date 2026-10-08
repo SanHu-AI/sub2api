@@ -547,6 +547,9 @@ export default {
         openAIChatFirstFrameEnabled: 'Chat Completions First-Frame Fastpath',
         openAIChatFirstFrameEnabledHint:
           'Default off. When enabled, streaming /v1/chat/completions emits an empty assistant chunk before forwarding upstream, so clients get their first token without waiting for upstream queueing or model thinking time. Note: the response status is pinned to 200 up front and upstream errors become in-stream error frames, which changes behaviour for clients that retry on HTTP status codes.',
+        openAIResponsesFirstFrameEnabled: 'Responses First-Frame Fastpath',
+        openAIResponsesFirstFrameEnabledHint:
+          'Default off. When enabled, streaming /v1/responses emits a response.created frame before forwarding upstream, so clients get their first event without waiting for upstream queueing. Because the real response id does not exist yet, the frame carries a gateway-synthesized id prefixed resp_s2ff_ and the gateway keeps a synthesized -> real id alias in Redis (7 days) so previous_response_id continuation still works; ids in later stream events are rewritten to the same synthesized id. Note: the response status is pinned to 200 up front and upstream errors become in-stream error frames. Clients that chain internally without echoing the id back do not depend on the alias map.',
         antigravityUserAgentVersion: 'Antigravity UA Version',
         antigravityUserAgentVersionPlaceholder: '1.23.2',
         antigravityUserAgentVersionHint: 'Leave empty to use ANTIGRAVITY_USER_AGENT_VERSION or the built-in default 1.23.2; when set, the admin setting takes precedence.',

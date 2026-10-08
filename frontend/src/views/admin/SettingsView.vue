@@ -5766,6 +5766,32 @@
                 />
               </div>
 
+              <!-- /v1/responses 首帧快返 -->
+              <div class="flex items-center justify-between">
+                <div>
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{
+                      t(
+                        "admin.settings.gatewayForwarding.openAIResponsesFirstFrameEnabled",
+                      )
+                    }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{
+                      t(
+                        "admin.settings.gatewayForwarding.openAIResponsesFirstFrameEnabledHint",
+                      )
+                    }}
+                  </p>
+                </div>
+                <Toggle
+                  v-model="form.openai_responses_first_frame_enabled"
+                  data-testid="openai-responses-first-frame-toggle"
+                />
+              </div>
+
               <!-- Antigravity UA 版本 -->
               <div>
                 <label
@@ -10044,6 +10070,7 @@ const form = reactive<SettingsForm>({
   rewrite_message_cache_control: false,
   enable_client_dateline_normalization: true,
   openai_chat_first_frame_enabled: false,
+  openai_responses_first_frame_enabled: false,
   antigravity_user_agent_version: "",
   openai_codex_user_agent: "",
   openai_codex_client_version: "",
@@ -11695,6 +11722,7 @@ async function saveSettings() {
       enable_client_dateline_normalization:
         form.enable_client_dateline_normalization,
       openai_chat_first_frame_enabled: form.openai_chat_first_frame_enabled,
+      openai_responses_first_frame_enabled: form.openai_responses_first_frame_enabled,
       antigravity_user_agent_version:
         form.antigravity_user_agent_version?.trim() || "",
       openai_codex_user_agent:

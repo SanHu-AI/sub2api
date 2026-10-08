@@ -29,6 +29,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 	"go.uber.org/zap"
 )
 
@@ -503,6 +504,18 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 	}
 	reqLog = reqLog.With(zap.String("model", reqModel), zap.Bool("stream", reqStream))
 	previousResponseID := strings.TrimSpace(gjson.GetBytes(body, "previous_response_id").String())
+	// 首帧快返：客户端续接时会带上首帧编造的 response id（resp_s2ff_*），上游并不
+	// 认识它。这里先翻译回上游真实 id 再走归属校验与转发，否则续链会断在
+	// previous_response_not_found 上。
+	if resolved, ok := h.gatewayService.ResolveOpenAIResponsesFirstFrameAlias(c.Request.Context(), previousResponseID); ok {
+		reqLog = reqLog.With(zap.String("previous_response_id_alias", previousResponseID))
+		previousResponseID = resolved
+		if updated, err := sjson.SetBytes(body, "previous_response_id", resolved); err == nil {
+			body = updated
+		} else {
+			reqLog.Warn("openai.previous_response_id_alias_rewrite_failed", zap.Error(err))
+		}
+	}
 	if previousResponseID != "" {
 		previousResponseIDKind := service.ClassifyOpenAIPreviousResponseIDKind(previousResponseID)
 		reqLog = reqLog.With(
@@ -781,6 +794,15 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 		// Forward request
 		service.SetOpsLatencyMs(c, service.OpsRoutingLatencyMsKey, time.Since(routingStart).Milliseconds())
 		forwardStart := time.Now()
+		// 首帧快返（openai_responses_first_frame_enabled，默认关闭）：流式 /v1/responses
+		// 在转发上游之前先下发 response.created 并提交 200 + SSE 响应头，把上游排队与
+		// 模型思考时间从客户端感知的 TTFT 里挪走。首帧字节同样计入非语义口径，
+		// 因此下面的快照不会把首帧误判成"已写出语义响应"，换号行为保持不变。
+		if reqStream && h.gatewayService.ResponsesFirstFrameEnabled(c.Request.Context()) {
+			if service.WriteOpenAIResponsesFirstFrame(c, reqModel) {
+				streamStarted = true
+			}
+		}
 		// 用扣除非语义心跳字节的口径快照：心跳注释不构成语义响应，
 		// 不能因心跳字节变化而放弃 failover 换号（#3887）。
 		writerSizeBeforeForward := service.OpenAICompactKeepaliveAdjustedWrittenSize(c)

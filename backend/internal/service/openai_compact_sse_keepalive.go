@@ -191,10 +191,11 @@ func OpenAICompactKeepaliveAdjustedWrittenSize(c *gin.Context) int {
 	if size < 0 {
 		return size
 	}
-	// 首帧快返的开场帧同样不是语义响应：它只是让下游提前拿到首字的空 delta，
-	// 上游 429/5xx 时仍应允许换号重试（换号成功后客户端看到的是同一个空开场帧
-	// 加上新账号的真实内容）。
-	keepaliveBytes := compactKeepaliveBytes + streamKeepaliveBytes + openAIChatFirstFrameBytes(c)
+	// 首帧快返的开场帧同样不是语义响应：它只是让下游提前拿到首字的空 delta /
+	// response.created，上游 429/5xx 时仍应允许换号重试（换号成功后客户端看到的
+	// 是同一个空开场帧加上新账号的真实内容）。chat 与 responses 两条路径各自记账。
+	keepaliveBytes := compactKeepaliveBytes + streamKeepaliveBytes +
+		openAIChatFirstFrameBytes(c) + openAIResponsesFirstFrameBytes(c)
 	if keepaliveBytes <= 0 {
 		return size
 	}

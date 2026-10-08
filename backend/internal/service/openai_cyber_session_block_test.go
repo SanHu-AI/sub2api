@@ -215,6 +215,12 @@ func (c *comboCacheAndStore) SetReasoningContent(_ context.Context, _ string, _ 
 func (c *comboCacheAndStore) GetReasoningContent(_ context.Context, _ string) (string, error) {
 	return "", ErrReasoningContentNotFound
 }
+func (c *comboCacheAndStore) SetResponseIDAlias(_ context.Context, _ string, _ string, _ time.Duration) error {
+	return nil
+}
+func (c *comboCacheAndStore) GetResponseIDAlias(_ context.Context, _ string) (string, error) {
+	return "", ErrResponseIDAliasNotFound
+}
 
 func (c *comboCacheAndStore) SetCyberSessionBlocked(ctx context.Context, scopeKey string, keys []string, ttl time.Duration) error {
 	return c.store.SetCyberSessionBlocked(ctx, scopeKey, keys, ttl)

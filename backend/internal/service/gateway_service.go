@@ -501,7 +501,22 @@ type GatewayCache interface {
 	// ErrReasoningContentNotFound，使 service 层无需依赖具体缓存实现即可
 	// 区分"未缓存"与真实读取失败。
 	GetReasoningContent(ctx context.Context, itemID string) (string, error)
+
+	// Response ID alias（/v1/responses 首帧快返）。
+	// 首帧 response.created 必须先于上游下发，此刻上游真实 response.id 尚不
+	// 存在，只能先编一个 resp_ id 给客户端；客户端会把它当作下一轮的
+	// previous_response_id。SetResponseIDAlias 记录"编造 id → 上游真实 id"，
+	// 使后续续接请求能被翻译回上游可识别的 id。
+	SetResponseIDAlias(ctx context.Context, aliasID string, realID string, ttl time.Duration) error
+	// GetResponseIDAlias 返回编造 id 对应的上游真实 id；未命中返回
+	// ErrResponseIDAliasNotFound。
+	GetResponseIDAlias(ctx context.Context, aliasID string) (string, error)
 }
+
+// ErrResponseIDAliasNotFound 表示编造的 response id 没有对应的上游真实 id。
+// 调用方应按"续链锚点不可用"处理（透传原 id 交给上游判定，或走既有的
+// previous_response_not_found 恢复）。
+var ErrResponseIDAliasNotFound = errors.New("response id alias not found")
 
 // derefGroupID safely dereferences *int64 to int64, returning 0 if nil
 func derefGroupID(groupID *int64) int64 {

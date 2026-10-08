@@ -125,6 +125,13 @@ func (c StubGatewayCache) GetReasoningContent(_ context.Context, _ string) (stri
 	return "", service.ErrReasoningContentNotFound
 }
 
+func (c StubGatewayCache) SetResponseIDAlias(_ context.Context, _ string, _ string, _ time.Duration) error {
+	return nil
+}
+func (c StubGatewayCache) GetResponseIDAlias(_ context.Context, _ string) (string, error) {
+	return "", service.ErrResponseIDAliasNotFound
+}
+
 // ============================================================
 // StubSessionLimitCache — service.SessionLimitCache 的空实现
 // ============================================================

@@ -690,6 +690,11 @@ const (
 	// 转发上游之前先下发一个内容为空的 assistant 开场帧并提交 200 + SSE 响应头，让下游
 	// 立刻拿到首字。开启后响应状态码会提前固化为 200，上游错误改走流内错误帧。
 	SettingKeyOpenAIChatFirstFrameEnabled = "openai_chat_first_frame_enabled"
+	// SettingKeyOpenAIResponsesFirstFrameEnabled 流式 /v1/responses 首帧快返（默认 false）：
+	// 转发上游之前先下发 event: response.created 并提交 200 + SSE 响应头。首帧必须早于上游
+	// 产生 response id，因此客户端拿到的是网关编造的别名（resp_s2ff_*）；网关用 Redis 维护
+	// "别名 → 上游真实 id"映射，使 previous_response_id 续链仍然可用。
+	SettingKeyOpenAIResponsesFirstFrameEnabled = "openai_responses_first_frame_enabled"
 	// SettingKeyEnableAnthropicCacheTTL1hInjection 是否对 Anthropic OAuth/SetupToken 请求体注入 1h cache_control ttl（默认 false）
 	SettingKeyEnableAnthropicCacheTTL1hInjection = "enable_anthropic_cache_ttl_1h_injection"
 	// SettingKeyEnableClientDatelineNormalization 是否对 Anthropic OAuth/SetupToken 账号

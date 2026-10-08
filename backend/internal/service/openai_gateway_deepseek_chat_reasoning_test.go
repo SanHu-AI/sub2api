@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/openai_compat"
@@ -157,6 +158,12 @@ func (c *reasoningHitCache) GetReasoningContent(_ context.Context, itemID string
 		return v, nil
 	}
 	return "", ErrReasoningContentNotFound
+}
+func (c *reasoningHitCache) SetResponseIDAlias(_ context.Context, _ string, _ string, _ time.Duration) error {
+	return nil
+}
+func (c *reasoningHitCache) GetResponseIDAlias(_ context.Context, _ string) (string, error) {
+	return "", ErrResponseIDAliasNotFound
 }
 
 func deepSeekChatHistoryWithEncryptedReasoning() []byte {

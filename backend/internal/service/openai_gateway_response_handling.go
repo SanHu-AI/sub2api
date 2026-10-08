@@ -118,6 +118,9 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 	if s.cfg != nil && s.cfg.Gateway.MaxLineSize > 0 {
 		maxLineSize = s.cfg.Gateway.MaxLineSize
 	}
+	// 首帧快返：若本次请求已下发过快返首帧，后续事件的 response id 必须统一改写
+	// 为首帧编造的 id，否则客户端会看到两个不同的 response id，续链也会断。
+	firstFrameAliasID := OpenAIResponsesFirstFrameAliasID(c)
 	var firstTokenMs *int
 	ttftMode := s.openAITTFTMode(ctx)
 	firstOutputProgressObserved := false
@@ -670,6 +673,15 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 			// Replace model in response if needed.
 			if needModelReplace {
 				line = s.replaceModelInSSELine(line, mappedModel, originalModel)
+			}
+			// 首帧快返：统一改写 response id，并在首次拿到上游真实 id 时落别名映射。
+			// 只改写出给客户端的 line，内部计费/绑定仍然使用真实 id。
+			if firstFrameAliasID != "" {
+				rewrittenLine, realID := rewriteOpenAIResponsesFirstFrameIDLine(line, firstFrameAliasID)
+				if realID != "" {
+					s.openAIResponsesFirstFrameBindRealID(c, realID)
+				}
+				line = rewrittenLine
 			}
 			startsClientOutput := forceFlushFailedEvent || openAIStreamDataStartsClientOutput(data, eventType)
 			startsVisibleOutput := openAIStreamDataStartsVisibleOutput(data, eventType)
