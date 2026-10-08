@@ -31,7 +31,11 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-GITHUB_REPO="Wei-Shaw/sub2api"
+# GITHUB_REPO can be overridden via SUB2API_REPO (defaults to this fork).
+GITHUB_REPO="${SUB2API_REPO:-SanHu-AI/sub2api}"
+# Optional offline install: point SUB2API_ARCHIVE / --archive at a local
+# sub2api_<version>_<os>_<arch>.tar.gz (e.g. a GitHub Actions artifact) and the
+# download + checksum steps are skipped.
 INSTALL_DIR="/opt/sub2api"
 SERVICE_NAME="sub2api"
 SERVICE_USER="sub2api"
@@ -620,33 +624,45 @@ download_and_extract() {
     local download_url="https://github.com/${GITHUB_REPO}/releases/download/${LATEST_VERSION}/${archive_name}"
     local checksum_url="https://github.com/${GITHUB_REPO}/releases/download/${LATEST_VERSION}/checksums.txt"
 
-    print_info "$(msg 'downloading') ${archive_name}..."
-
     # Create temp directory
     TEMP_DIR=$(mktemp -d)
     trap "rm -rf $TEMP_DIR" EXIT
 
-    # Download archive
-    if ! curl -sL "$download_url" -o "$TEMP_DIR/$archive_name"; then
-        print_error "$(msg 'download_failed')"
-        exit 1
-    fi
-
-    # Download and verify checksum
-    print_info "$(msg 'verifying_checksum')"
-    if curl -sL "$checksum_url" -o "$TEMP_DIR/checksums.txt" 2>/dev/null; then
-        local expected_checksum=$(grep "$archive_name" "$TEMP_DIR/checksums.txt" | awk '{print $1}')
-        local actual_checksum=$(sha256sum "$TEMP_DIR/$archive_name" | awk '{print $1}')
-
-        if [ "$expected_checksum" != "$actual_checksum" ]; then
-            print_error "$(msg 'checksum_failed')"
-            print_error "Expected: $expected_checksum"
-            print_error "Actual: $actual_checksum"
+    if [ -n "${SUB2API_ARCHIVE:-}" ]; then
+        # Offline install: use a pre-built archive (GitHub Actions artifact,
+        # manual scp, etc.) instead of downloading from GitHub Releases.
+        if [ ! -f "$SUB2API_ARCHIVE" ]; then
+            print_error "archive not found: $SUB2API_ARCHIVE"
             exit 1
         fi
-        print_success "$(msg 'checksum_verified')"
+        print_info "Offline install from archive: $SUB2API_ARCHIVE"
+        cp "$SUB2API_ARCHIVE" "$TEMP_DIR/$archive_name"
+        print_warning "checksum verification skipped for local archive"
     else
-        print_warning "$(msg 'checksum_not_found')"
+        print_info "$(msg 'downloading') ${archive_name}..."
+
+        # Download archive
+        if ! curl -sL "$download_url" -o "$TEMP_DIR/$archive_name"; then
+            print_error "$(msg 'download_failed')"
+            exit 1
+        fi
+
+        # Download and verify checksum
+        print_info "$(msg 'verifying_checksum')"
+        if curl -sL "$checksum_url" -o "$TEMP_DIR/checksums.txt" 2>/dev/null; then
+            local expected_checksum=$(grep "$archive_name" "$TEMP_DIR/checksums.txt" | awk '{print $1}')
+            local actual_checksum=$(sha256sum "$TEMP_DIR/$archive_name" | awk '{print $1}')
+
+            if [ "$expected_checksum" != "$actual_checksum" ]; then
+                print_error "$(msg 'checksum_failed')"
+                print_error "Expected: $expected_checksum"
+                print_error "Actual: $actual_checksum"
+                exit 1
+            fi
+            print_success "$(msg 'checksum_verified')"
+        else
+            print_warning "$(msg 'checksum_not_found')"
+        fi
     fi
 
     # Extract
@@ -966,6 +982,47 @@ install_version() {
     echo ""
 }
 
+# Install or upgrade from a local archive (offline: no GitHub release download).
+# Used with --archive / SUB2API_ARCHIVE (e.g. a GitHub Actions binary artifact).
+install_from_archive() {
+    print_info "Offline mode: installing from $SUB2API_ARCHIVE"
+
+    configure_server
+
+    # Best-effort version hint from the archive file name
+    local version_hint
+    version_hint="$(basename "$SUB2API_ARCHIVE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+    LATEST_VERSION="${version_hint:-local}"
+
+    # If already installed: stop the service and back up the current binary
+    if [ -f "$INSTALL_DIR/sub2api" ]; then
+        local current_version
+        current_version=$(get_current_version)
+        print_info "$(msg 'current_version'): $current_version"
+
+        if systemctl is-active --quiet sub2api; then
+            print_info "$(msg 'stopping_service')"
+            systemctl stop sub2api
+        fi
+
+        if [ "$current_version" != "unknown" ] && [ "$current_version" != "not_installed" ]; then
+            cp "$INSTALL_DIR/sub2api" "$INSTALL_DIR/sub2api.backup.${current_version}"
+            print_info "$(msg 'backup_created'): $INSTALL_DIR/sub2api.backup.${current_version}"
+        fi
+    fi
+
+    download_and_extract
+    create_user
+    setup_directories
+    chown "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR/sub2api"
+    install_service
+    prepare_for_setup
+    get_public_ip
+    start_service
+    enable_autostart
+    print_completion
+}
+
 # Uninstall function
 uninstall() {
     print_warning "$(msg 'uninstall_confirm')"
@@ -1036,6 +1093,23 @@ main() {
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
+            --archive)
+                if [ -n "${2:-}" ] && [[ ! "$2" =~ ^- ]]; then
+                    SUB2API_ARCHIVE="$2"
+                    shift 2
+                else
+                    echo "Error: --archive requires a file path"
+                    exit 1
+                fi
+                ;;
+            --archive=*)
+                SUB2API_ARCHIVE="${1#*=}"
+                if [ -z "$SUB2API_ARCHIVE" ]; then
+                    echo "Error: --archive requires a file path"
+                    exit 1
+                fi
+                shift
+                ;;
             -y|--yes)
                 FORCE_YES="true"
                 shift
@@ -1086,6 +1160,10 @@ main() {
             check_root
             detect_platform
             check_dependencies
+            if [ -n "${SUB2API_ARCHIVE:-}" ]; then
+                install_from_archive
+                exit 0
+            fi
             if [ -n "$target_version" ]; then
                 # Upgrade to specific version
                 install_version "$target_version"
@@ -1100,6 +1178,10 @@ main() {
             check_root
             detect_platform
             check_dependencies
+            if [ -n "${SUB2API_ARCHIVE:-}" ]; then
+                install_from_archive
+                exit 0
+            fi
             if [ -n "$target_version" ]; then
                 # Install specific version (fresh install or rollback)
                 if [ -f "$INSTALL_DIR/sub2api" ]; then
@@ -1177,6 +1259,7 @@ main() {
             echo ""
             echo "Options:"
             echo "  -v, --version <ver>  $(msg 'opt_version')"
+            echo "  --archive <path>     Install from a local tar.gz (offline, skips download)"
             echo "  -y, --yes            Skip confirmation prompts (for uninstall)"
             echo ""
             echo "Examples:"
